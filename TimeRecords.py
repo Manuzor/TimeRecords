@@ -68,16 +68,12 @@ def main():
     print("Error: Command not found: {0}".format(args.command))
     return 1
 
-def checkRecordsFileContent(doc, expectedState):
-    state = doc.get("state", None)
-    if state is None:
-        raise ValueError("Expected key 'state'")
-    if state != expectedState:
-        raise ValueError("Expected 'state' to be '{0}' but is '{1}'.".format(expectedState, state))
+def checkRecordsFileContent(doc):
+    if "current" not in doc:
+        raise ValueError("Expected key 'current'.")
     if "records" not in doc:
         raise ValueError("Expected key 'records'.")
-    records = doc["records"]
-    if not isinstance(records, list):
+    if not isinstance(doc["records"], list):
         raise ValueError("Expected 'records' to be a list.")
 
 ### Commands ####################################
@@ -88,7 +84,7 @@ def initializeRecordsFile(args):
         input("Warning: File already exists. Press Enter to continue")
 
     with open(args.file, mode='w') as recordsFile:
-        json.dump({ "state" : "ended", "records"  : [] }, recordsFile, indent=4)
+        json.dump({ "current" : None, "records"  : [] }, recordsFile, indent=4)
 
 @command("generate", aliases=["gen"])
 def generate(args):
@@ -100,10 +96,11 @@ def start(args):
     with open(args.file, mode='r') as recordsFile:
         doc = json.load(recordsFile)
 
-    checkRecordsFileContent(doc, "ended")
+    checkRecordsFileContent(doc)
 
-    doc["records"].append(str(Time()))
-    doc["state"] = "started"
+    assert doc["current"] == None, "You are already recording something."
+
+    doc["current"] = { "start" : str(Time()), "end" : None }
 
     with open(args.file, mode='w') as recordsFile:
         json.dump(doc, recordsFile, indent=4)
@@ -114,10 +111,13 @@ def end(args):
     with open(args.file, mode='r') as recordsFile:
         doc = json.load(recordsFile)
 
-    checkRecordsFileContent(doc, "started")
+    checkRecordsFileContent(doc)
+    
+    assert doc["current"] != None, "You are already recording something."
 
-    doc["records"].append(str(Time()))
-    doc["state"] = "ended"
+    doc["current"]["end"] = str(Time())
+    doc["records"].append(doc["current"])
+    doc["current"] = None
 
     with open(args.file, mode='w') as recordsFile:
         json.dump(doc, recordsFile, indent=4)
