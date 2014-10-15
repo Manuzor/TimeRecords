@@ -6,20 +6,30 @@ import argparse
 import os
 
 class CommandEntry:
-    def __init__(self, func, name, aliases):
+    def __init__(self, func, name, aliases, help):
         self.func = func
         self.name = name
         self.aliases = aliases
+        self.help = help
 
     def __call__(self, *args, **kwargs):
         self.func(*args, **kwargs)
 
+    def __str__(self):
+        result = "Command '{0}'".format(self.name)
+        if self.aliases:
+            result += "\n  aliases: '{0}'".format("', '".join(self.aliases))
+        if self.help:
+            result += "\n  {0}".format(self.help)
+        return result + "\n"
+
+    def __repr__(self):
+        return self.name
+
 commands = []
 
-def command(name, *, aliases=None):
-    def registerCommand(func):
-        commands.append(CommandEntry(func, name, aliases))
-    return registerCommand
+def command(name, *, aliases=None, help=None):
+    return lambda func: commands.append(CommandEntry(func, name, aliases, help))
 
 class Time:
     ### Static stuff ############################
@@ -62,7 +72,7 @@ def main():
         print("args: {0}".format(args))
 
     for command in commands:
-        if command.name == args.command or args.command in command.aliases:
+        if command.name == args.command or command.aliases and args.command in command.aliases:
             command(args)
             return
     print("Error: Command not found: {0}".format(args.command))
@@ -77,6 +87,11 @@ def checkRecordsFileContent(doc):
         raise ValueError("Expected 'records' to be a list.")
 
 ### Commands ####################################
+
+@command("commands", help="Prints information about all available commands.")
+def showCommands(args):
+    for command in commands:
+        print(command)
 
 @command("initialize", aliases=["init"])
 def initializeRecordsFile(args):
