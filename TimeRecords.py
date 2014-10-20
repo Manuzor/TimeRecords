@@ -5,6 +5,17 @@ from datetime import datetime
 import argparse
 import os
 
+class Pair:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+    def __str__(self):
+        return "({0} : {1})".format(self.key, self.value)
+    
+    def __repr__(self):
+        return str(self)
+
 class CommandEntry:
     def __init__(self, func, name, aliases, help):
         self.func = func
@@ -53,6 +64,9 @@ class Time:
     def __str__(self):
         return self.DateTime.strftime(Time.Format)
 
+    def GetDay(self):
+        return self.DateTime.date()
+
 ########## Args ##########
 
 argsParser = argparse.ArgumentParser()
@@ -100,7 +114,33 @@ def initializeRecordsFile(args):
 @command("generate", aliases=["gen"], help="Generates a hours-worked report and prints that.")
 def generate(args):
     timeTable = [] # Format: "day" : "numHours"
-    print("generate!")
+    def addToTimeTable(key, value):
+        for existing in timeTable:
+            if existing.key == key:
+                # Found the entry with the given key.
+                existing.value += value
+                return
+        # The key does not exist yet so we just create it
+        timeTable.append(Pair(key, value))
+    doc = None
+    with open(args.file, mode='r') as recordsFile:
+        doc = json.load(recordsFile)
+    checkRecordsFileContent(doc)
+    records = doc["records"]
+    for rec in records:
+        start = Time(rec["start"])
+        end = Time(rec["end"])
+        day = start.DateTime.date()
+        assert day == end.DateTime.date()
+        formattedDay = "{0:%Y-%m-%d, %A}".format(day)
+        delta = end.DateTime - start.DateTime
+        if args.verbosity > 1:
+            print("On {0}: {1} hours".format(formattedDay, delta))
+        addToTimeTable(formattedDay, delta)
+    timeTableString = ""
+    for entry in timeTable:
+        timeTableString += "{0} => {1}".format(entry.key, entry.value)
+    print(timeTableString)
 
 @command("start", aliases=["s"])
 def start(args):
@@ -179,7 +219,7 @@ def main():
     else:
         if args.verbosity > 1:
             print("Executing {0}\n==========".format(command))
-        command(args)
+        return command(args)
 
 if __name__ == '__main__':
     main()
