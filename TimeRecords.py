@@ -21,7 +21,7 @@ class CommandEntry:
             result += "\n  aliases: '{0}'".format("', '".join(self.aliases))
         if self.help:
             result += "\n  {0}".format(self.help)
-        return result + "\n"
+        return result
 
     def __repr__(self):
         return self.name
@@ -63,6 +63,9 @@ argsParser.add_argument("-v", "--verbosity",
 argsParser.add_argument("-f", "--file",
                         default="TimeRecords.json",
                         help="The file to use.")
+argsParser.add_argument("-n", "--dry-run",
+                        action="store_true",
+                        help="Simulates the given command but prevents side-effects (other than printing...)")
 argsParser.add_argument("command",
                         help="The command to execute.")
 
@@ -76,8 +79,8 @@ def checkRecordsFileContent(doc):
 
 ########## Helpers ##########
 
-def printCommands():
-    for command in commands:
+def printCommands(subset=None):
+    for command in subset or commands:
         print(command)
 
 ########## Commands ##########
@@ -141,17 +144,42 @@ def printRecordsFileContent(args):
 
 def main():
     args = argsParser.parse_args()
+    args.dryRun = args.dry_run
+    del args.dry_run
+
     if args.verbosity > 1:
         print("args: {0}".format(args))
 
+    candidates = []
+    # Iterate through all available commands and choose all that fit.
     for command in commands:
-        if command.name == args.command or command.aliases and args.command in command.aliases:
-            command(args)
-            return
-    print("Error: Command not found: {0}".format(args.command))
-    print("Available commands:")
-    printCommands()
-    return 1
+        if command.name.startswith(args.command):
+            candidates.append(command)
+            continue
+        if command.aliases is None:
+            continue
+        for alias in command.aliases:
+            if alias.startswith(args.command):
+                candidates.append(command)
+    if len(candidates) == 0:
+        print("Error: Command not found: {0}".format(args.command))
+        print("Available commands:")
+        printCommands()
+        return 1
+    if len(candidates) > 1:
+        print("Error: Given command name is ambiguous: {0}".format(args.command))
+        print("Possible candidates:")
+        printCommands(candidates)
+        return 2
+
+    # At this point we can be sure that there is exactly 1 candidate.
+    command = candidates[0]
+    if args.dryRun:
+        print("Would execute {0}".format(command))
+    else:
+        if args.verbosity > 1:
+            print("Executing {0}\n==========".format(command))
+        command(args)
 
 if __name__ == '__main__':
     main()
