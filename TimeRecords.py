@@ -132,14 +132,13 @@ def generate(args):
         end = Time(rec["end"])
         day = start.DateTime.date()
         assert day == end.DateTime.date()
-        formattedDay = "{0:%Y-%m-%d, %A}".format(day)
         delta = end.DateTime - start.DateTime
         if args.verbosity > 1:
-            print("On {0}: {1} hours".format(formattedDay, delta))
-        addToTimeTable(formattedDay, delta)
+            print("On {0}: {1} hours".format(day, delta))
+        addToTimeTable(day, delta)
     timeTableString = ""
     for entry in timeTable:
-        timeTableString += "{0} => {1}".format(entry.key, entry.value)
+        timeTableString += "{0}, {1:<9} => {2}\n".format(entry.key, "{0:%A}".format(entry.key), entry.value)
     print(timeTableString)
 
 @command("start", aliases=["s"])
