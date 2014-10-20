@@ -32,7 +32,7 @@ def command(name, *, aliases=None, help=None):
     return lambda func: commands.append(CommandEntry(func, name, aliases, help))
 
 class Time:
-    ### Static stuff ############################
+    ########## Static stuff ##########
 
     Format = "%Y-%m-%d %H:%M:%S, %A"
 
@@ -42,7 +42,7 @@ class Time:
     def FromString(theString):
         return Time(theString)
 
-    ### Instance stuff ##########################
+    ########## Instance stuff ##########
 
     def __init__(self, dateString=None):
         if dateString is not None:
@@ -53,7 +53,7 @@ class Time:
     def __str__(self):
         return self.DateTime.strftime(Time.Format)
 
-### Args ########################################
+########## Args ##########
 
 argsParser = argparse.ArgumentParser()
 argsParser.add_argument("-v", "--verbosity",
@@ -66,18 +66,6 @@ argsParser.add_argument("-f", "--file",
 argsParser.add_argument("command",
                         help="The command to execute.")
 
-def main():
-    args = argsParser.parse_args()
-    if args.verbosity > 1:
-        print("args: {0}".format(args))
-
-    for command in commands:
-        if command.name == args.command or command.aliases and args.command in command.aliases:
-            command(args)
-            return
-    print("Error: Command not found: {0}".format(args.command))
-    return 1
-
 def checkRecordsFileContent(doc):
     if "current" not in doc:
         raise ValueError("Expected key 'current'.")
@@ -86,12 +74,17 @@ def checkRecordsFileContent(doc):
     if not isinstance(doc["records"], list):
         raise ValueError("Expected 'records' to be a list.")
 
-### Commands ####################################
+########## Helpers ##########
+
+def printCommands():
+    for command in commands:
+        print(command)
+
+########## Commands ##########
 
 @command("commands", help="Prints information about all available commands.")
 def showCommands(args):
-    for command in commands:
-        print(command)
+    printCommands()
 
 @command("initialize", aliases=["init"])
 def initializeRecordsFile(args):
@@ -101,8 +94,9 @@ def initializeRecordsFile(args):
     with open(args.file, mode='w') as recordsFile:
         json.dump({ "current" : None, "records"  : [] }, recordsFile, indent=4)
 
-@command("generate", aliases=["gen"])
+@command("generate", aliases=["gen"], help="Generates a hours-worked report and prints that.")
 def generate(args):
+    timeTable = [] # Format: "day" : "numHours"
     print("generate!")
 
 @command("start", aliases=["s"])
@@ -143,6 +137,21 @@ def printRecordsFileContent(args):
         lines = recordsFile.readlines()
         print("".join(lines))
 
-### Entry Point #################################
+########## Entry Point ##########
+
+def main():
+    args = argsParser.parse_args()
+    if args.verbosity > 1:
+        print("args: {0}".format(args))
+
+    for command in commands:
+        if command.name == args.command or command.aliases and args.command in command.aliases:
+            command(args)
+            return
+    print("Error: Command not found: {0}".format(args.command))
+    print("Available commands:")
+    printCommands()
+    return 1
+
 if __name__ == '__main__':
     main()
