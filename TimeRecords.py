@@ -131,7 +131,6 @@ def generate(args):
         start = Time(rec["start"])
         end = Time(rec["end"])
         day = start.DateTime.date()
-        assert day == end.DateTime.date()
         delta = end.DateTime - start.DateTime
         if args.verbosity > 1:
             print("On {0}: {1} hours".format(day, delta))
