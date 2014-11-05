@@ -44,13 +44,10 @@ def command(name, *, aliases=None, help=None):
 
 class UTCGermany(tzinfo):
     def utcoffset(self, dt):
-        print("utcoffset() called!")
         return timedelta(hours=1)
     def tzname(self, dt):
-        print("tzname() called!")
         return "UTC +1"
     def dst(self, dt):
-        print("dst() called!")
         return timedelta(hours=1)
 
 class Time:
@@ -149,8 +146,12 @@ def generate(args):
             print("On {0}: {1} hours".format(day, delta))
         addToTimeTable(day, delta)
     timeTableString = ""
+    totalTime = timedelta(0)
     for entry in timeTable:
         timeTableString += "{0}, {1:<9} => {2}\n".format(entry.key, "{0:%A}".format(entry.key), entry.value)
+        totalTime += entry.value
+    timeTableString += "=" * 32
+    timeTableString += "\n" + " " * 16 + "Total => {0}".format(totalTime)
     print(timeTableString)
 
 @command("start", aliases=["s"])
