@@ -1,7 +1,7 @@
 #!/bin/env python
 
 import json
-from datetime import datetime
+from datetime import datetime, tzinfo, timedelta
 import argparse
 import os
 
@@ -42,9 +42,21 @@ commands = []
 def command(name, *, aliases=None, help=None):
     return lambda func: commands.append(CommandEntry(func, name, aliases, help))
 
+class UTCGermany(tzinfo):
+    def utcoffset(self, dt):
+        print("utcoffset() called!")
+        return timedelta(hours=1)
+    def tzname(self, dt):
+        print("tzname() called!")
+        return "UTC +1"
+    def dst(self, dt):
+        print("dst() called!")
+        return timedelta(hours=1)
+
 class Time:
     ########## Static stuff ##########
 
+    TimeZone = UTCGermany()
     Format = "%Y-%m-%d %H:%M:%S, %A"
 
     def GetNow():
@@ -58,8 +70,9 @@ class Time:
     def __init__(self, dateString=None):
         if dateString is not None:
             self.DateTime = datetime.strptime(dateString, Time.Format)
+            self.DateTime.replace(tzinfo=Time.TimeZone)
         else:
-            self.DateTime = datetime.now()
+            self.DateTime = datetime.now(Time.TimeZone) + timedelta(hours=1)
 
     def __str__(self):
         return self.DateTime.strftime(Time.Format)
