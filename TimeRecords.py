@@ -192,6 +192,10 @@ def printRecordsFileContent(args):
         lines = recordsFile.readlines()
         print("".join(lines))
 
+@command("open", help="Opens the records file in the default text editor.")
+def openFile(args):
+    os.startfile(args.file)
+
 ########## Entry Point ##########
 
 def main():
